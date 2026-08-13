@@ -328,7 +328,17 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
   </div>
   <button id="feel-next" class="btn btn-sky" style="display:none;max-width:200px" onclick="feelDone()">Continue ▶</button>
 </div>
-<div id="gloss-popup" style="display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:var(--r);max-width:300px;text-align:center;z-index:500;font-size:13px"></div>
+<!-- Glossary modal -->
+<div id="gloss-modal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGloss()">
+  <div style="background:var(--surface);border-radius:24px;width:100%;max-width:360px;padding:28px 24px 22px;box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center;position:relative">
+    <button onclick="closeGloss()" style="position:absolute;top:12px;right:14px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--text2);line-height:1">×</button>
+    <div id="gloss-emoji" style="font-size:56px;line-height:1;margin-bottom:8px"></div>
+    <div id="gloss-word" style="font-size:26px;font-weight:900;color:var(--text);margin-bottom:6px"></div>
+    <div id="gloss-def" style="font-size:15px;color:var(--text2);margin-bottom:14px;line-height:1.5"></div>
+    <div id="gloss-example" style="background:var(--surface2);border-radius:14px;padding:10px 14px;font-size:13px;color:var(--text2);font-style:italic;margin-bottom:16px;display:none"></div>
+    <button onclick="glossSayIt()" style="background:var(--sky);color:#fff;border:none;border-radius:100px;padding:12px 28px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;width:100%">🔊 Say It!</button>
+  </div>
+</div>
 <div id="action-wrap" style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px">
   <button class="btn btn-sky" id="btn-read" onclick="readSentence()">🔊 Read to Me</button>
   <div style="display:flex;gap:8px">
@@ -1103,7 +1113,7 @@ function renderSentence(){
   document.getElementById('sent-card').style.display='flex';
   document.getElementById('action-wrap').style.display='flex';
   document.getElementById('btn-next').style.display='none';
-  document.getElementById('gloss-popup').style.display='none';
+  closeGloss();
   if(S.momentIdx>=MOMENTS.length){goTo('s-convo');renderConvo();return;}
   const moment=MOMENTS[S.momentIdx];
   document.getElementById('moment-title').textContent=moment.title;
@@ -1141,12 +1151,23 @@ function buildWordSpans(el){
     span.style.cssText='background:#FFD60A;color:#1a1a2e;border-radius:6px;padding:2px 7px;cursor:pointer;font-weight:800;display:inline-block;line-height:1.4;box-shadow:0 2px 6px rgba(255,214,10,.4);transition:transform .1s';
     span.onmousedown=()=>span.style.transform='scale(.95)';
     span.onmouseup=()=>span.style.transform='scale(1)';
-    const df=g.getAttribute('df')||'',em=g.getAttribute('e')||'';
-    span.onclick=()=>showGloss(em+' '+g.getAttribute('d')+': '+df);
+    const word=g.getAttribute('d')||g.textContent,df=g.getAttribute('df')||'',em=g.getAttribute('e')||'💡',ex=g.getAttribute('ex')||'';
+    span.onclick=()=>showGloss(word,em,df,ex);
     g.replaceWith(span);
   });
 }
-function showGloss(txt){const p=document.getElementById('gloss-popup');p.textContent=txt;p.style.display='block';TTS.speak(txt);setTimeout(()=>p.style.display='none',3000);}
+let _glossWord='';
+function showGloss(word,emoji,def,example){
+  _glossWord=word;
+  document.getElementById('gloss-emoji').textContent=emoji||'💡';
+  document.getElementById('gloss-word').textContent=word;
+  document.getElementById('gloss-def').textContent=def||'';
+  const exEl=document.getElementById('gloss-example');
+  if(example){exEl.textContent='"'+example+'"';exEl.style.display='block';}else{exEl.style.display='none';}
+  const m=document.getElementById('gloss-modal');m.style.display='flex';
+}
+function closeGloss(){document.getElementById('gloss-modal').style.display='none';}
+function glossSayIt(){if(_glossWord)TTS.speak(_glossWord);}
 function readSentence(){const t=document.getElementById('sentence-text').textContent;TTS.speak(t,document.getElementById('sentence-text'));document.getElementById('btn-next').style.display='flex';}
 function hearAgain(){S.hearAgainCount++;earnStars(5,'+5⭐ Smart!',document.getElementById('btn-again'));readSentence();checkBadges();saveP();}
 function showHint(){S.helpCount++;earnStars(5,'+5⭐ Brave!',document.getElementById('btn-help'));document.getElementById('hint-box').style.display='block';document.getElementById('btn-next').style.display='flex';checkBadges();saveP();}
