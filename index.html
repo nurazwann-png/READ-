@@ -411,7 +411,7 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
 <div id="s-badges" class="screen">
 <button class="back-btn" onclick="goTo('s-home')">← Home</button>
 <div style="text-align:center;font-weight:800;font-size:18px">🏅 My Badges</div>
-<div class="card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="badges-grid"></div>
+<div id="badges-grid"></div>
 </div>
 
 <!-- ===== MAP ===== -->
@@ -913,12 +913,42 @@ const CONVO_Qs=[
   {q:"What would YOU do to make someone you love feel special?",opts:[{i:"🎨",t:"Make them something with my hands",r:"Handmade gifts come from the heart!"},{i:"🌸",t:"Give them flowers or a special gift",r:"A little gift can make a big smile!"},{i:"🤗",t:"Give them a big hug and spend time together",r:"The best gift — your time and love!"},{i:"💬",t:"Write a card or say 'I love you'",r:"Simple and so powerful!"}],correct:-1},
 ];
 const BADGES=[
-  {id:'first',name:'First Read',icon:'📖',desc:'Read your first sentence',check:p=>p.sentsDone>=1},
-  {id:'curious',name:'Curious Mind',icon:'💡',desc:"Used Kunang's help",check:p=>p.helpCount>=1},
-  {id:'listener',name:'Super Listener',icon:'👂',desc:'Hear Again 3 times',check:p=>p.hearAgainCount>=3},
-  {id:'detective',name:'Story Detective',icon:'🔍',desc:'Found all 3 clues',check:p=>p.cluesFound>=3},
-  {id:'brave',name:'Brave Reader',icon:'🦁',desc:'Read 10 sentences',check:p=>p.sentsDone>=10},
-  {id:'champion',name:'Story Champion',icon:'🏆',desc:'Completed the story',check:p=>p.storyComplete},
+  // ── READING ──────────────────────────────────────────────────────
+  {id:'first',       tier:1, name:'First Read',      icon:'📖', desc:'Read your first sentence',      check:p=>p.sentsDone>=1},
+  {id:'brave',       tier:1, name:'Brave Reader',    icon:'🦁', desc:'Read 10 sentences',             check:p=>p.sentsDone>=10},
+  {id:'bookworm',    tier:2, name:'Bookworm',         icon:'🐛', desc:'Read 30 sentences',             check:p=>p.sentsDone>=30},
+  {id:'storyteller', tier:2, name:'Storyteller',      icon:'📚', desc:'Read 60 sentences',             check:p=>p.sentsDone>=60},
+  {id:'champion',    tier:3, name:'Story Champion',   icon:'🏆', desc:'Complete the story',            check:p=>p.storyComplete},
+  {id:'grandmaster', tier:3, name:'Grand Master',     icon:'👑', desc:'Complete story + earn 500 ⭐',  check:p=>p.storyComplete&&(p.stars||0)>=500},
+
+  // ── LISTENING ─────────────────────────────────────────────────────
+  {id:'listener1',   tier:1, name:'Good Listener',   icon:'👂', desc:'Use Hear Again 3 times',        check:p=>(p.hearAgainCount||0)>=3},
+  {id:'listener2',   tier:2, name:'Super Listener',  icon:'🎧', desc:'Answer 10 listening questions correctly', check:p=>(p.listeningCorrect||0)>=10},
+  {id:'listener3',   tier:3, name:'Listening Legend', icon:'🎶', desc:'Answer 30 listening questions correctly', check:p=>(p.listeningCorrect||0)>=30},
+
+  // ── SPEAKING ──────────────────────────────────────────────────────
+  {id:'speaker1',    tier:1, name:'Say It!',          icon:'🗣️', desc:'Record yourself for the first time', check:p=>(p.speakingAttempts||0)>=1},
+  {id:'speaker2',    tier:2, name:'Confident Voice',  icon:'🎤', desc:'Record yourself 10 times',      check:p=>(p.speakingAttempts||0)>=10},
+  {id:'speaker3',    tier:3, name:'Star Speaker',     icon:'🌟', desc:'Record yourself 25 times',      check:p=>(p.speakingAttempts||0)>=25},
+
+  // ── DETECTIVE / EXPLORATION ───────────────────────────────────────
+  {id:'curious',     tier:1, name:'Curious Mind',    icon:'💡', desc:"Ask Kunang for help once",       check:p=>(p.helpCount||0)>=1},
+  {id:'detective',   tier:2, name:'Story Detective',  icon:'🔍', desc:'Find all 3 hidden clues',       check:p=>(p.cluesFound||0)>=3},
+  {id:'explorer',    tier:3, name:'Super Explorer',   icon:'🗺️', desc:'Complete 5 different activities', check:p=>(p.sessions||[]).filter(s=>s.completed).map(s=>s.id).filter((v,i,a)=>a.indexOf(v)===i).length>=5},
+
+  // ── STARS ─────────────────────────────────────────────────────────
+  {id:'star1',       tier:1, name:'Rising Star',      icon:'⭐', desc:'Earn 50 stars',                 check:p=>(p.stars||0)>=50},
+  {id:'star2',       tier:2, name:'Shining Star',     icon:'🌠', desc:'Earn 200 stars',                check:p=>(p.stars||0)>=200},
+  {id:'star3',       tier:3, name:'Galaxy Brain',     icon:'🌌', desc:'Earn 500 stars',                check:p=>(p.stars||0)>=500},
+
+  // ── CONSISTENCY / EFFORT ──────────────────────────────────────────
+  {id:'streak1',     tier:2, name:'On a Roll',        icon:'🔥', desc:'Complete 3 activities in one session', check:p=>(p.sessions||[]).filter(s=>s.completed).length>=3},
+  {id:'streak2',     tier:3, name:'Unstoppable',      icon:'💥', desc:'Complete 10 activities in total', check:p=>(p.sessions||[]).filter(s=>s.completed).length>=10},
+  {id:'allskills',   tier:3, name:'All-Rounder',      icon:'🎯', desc:'Complete at least 1 activity in each skill', check:p=>{const done=(p.sessions||[]).filter(s=>s.completed).map(s=>s.skill);return['reading','listening','speaking'].every(sk=>done.includes(sk));}},
+
+  // ── ACCURACY ──────────────────────────────────────────────────────
+  {id:'accurate1',   tier:2, name:'Sharp Mind',       icon:'🎯', desc:'Get 5 listening answers correct in a row', check:p=>(p.listeningStreak||0)>=5},
+  {id:'accurate2',   tier:3, name:'Perfect Ear',      icon:'💎', desc:'Get 10 listening answers correct in a row', check:p=>(p.listeningStreak||0)>=10},
 ];
 const MAP_UNITS=[{id:'u1',title:'The Mystery of the Missing Basket',icon:'🧺',done:false,current:true},{id:'u2',title:'Kunang and the River',icon:'🌊',done:false,current:false}];
 
@@ -1097,9 +1127,14 @@ function answerListen(idx){
   const correct=idx===_curListen.correct;
   if(CU){
     CU.progress.listeningTotal=(CU.progress.listeningTotal||0)+1;
-    if(correct)CU.progress.listeningCorrect=(CU.progress.listeningCorrect||0)+1;
+    if(correct){
+      CU.progress.listeningCorrect=(CU.progress.listeningCorrect||0)+1;
+      CU.progress.listeningStreak=(CU.progress.listeningStreak||0)+1;
+    } else {
+      CU.progress.listeningStreak=0;
+    }
     recordAnswer(CU.progress,idx,Date.now()-_qShownAt);
-    dbSave();
+    dbSave();checkBadges();
   }
   earnStars(correct?15:5,correct?'+15⭐ Correct!':'+5⭐ Good try!',document.querySelectorAll('.convo-opt')[idx]);
   document.getElementById('listen-fb').textContent=correct?'🎉 Well done! That\'s correct!':'Good try! The answer was: '+_curListen.opts[_curListen.correct];
@@ -1194,7 +1229,12 @@ function speakConvoAnswer(){
 }
 
 function rateSpeaking(rating){
-  if(CU){if(!CU.progress.speakingRatings)CU.progress.speakingRatings=[];CU.progress.speakingRatings.push(rating);dbSave();}
+  if(CU){
+    if(!CU.progress.speakingRatings)CU.progress.speakingRatings=[];
+    CU.progress.speakingRatings.push(rating);
+    CU.progress.speakingAttempts=(CU.progress.speakingAttempts||0)+1;
+    dbSave();checkBadges();
+  }
   earnStars(10,'+10⭐ Great!',document.querySelectorAll('#speak-card .convo-opt')[rating-1]);
   const msgs=['Keep practising — you\'re getting better! 💪','Great effort! Every try makes you better! 🌟','Excellent! You said it really well! 🎉'];
   document.getElementById('speak-fb').textContent=msgs[rating-1];
@@ -1388,8 +1428,20 @@ function launchWordFlash(){
   TTS.speak(w.word);
   goTo('s-listening');
 }
+function trackListenResult(ok){
+  if(!CU)return;
+  CU.progress.listeningTotal=(CU.progress.listeningTotal||0)+1;
+  if(ok){
+    CU.progress.listeningCorrect=(CU.progress.listeningCorrect||0)+1;
+    CU.progress.listeningStreak=(CU.progress.listeningStreak||0)+1;
+  } else {
+    CU.progress.listeningStreak=0;
+  }
+  dbSave();checkBadges();
+}
 function answerWordFlash(chosen,correct){
   const ok=chosen===correct;
+  trackListenResult(ok);
   earnStars(ok?15:5,ok?'+15⭐ Correct!':'+5⭐ Try again!',document.querySelector('#listen-opts .convo-opt'));
   document.getElementById('listen-fb').textContent=ok?'🎉 Yes! '+correct.toUpperCase()+' = '+WORD_BANK.find(w=>w.word===correct)?.pic:'Good try! The word is '+correct.toUpperCase()+' '+WORD_BANK.find(w=>w.word===correct)?.pic;
   document.getElementById('listen-fb').style.display='block';
@@ -1613,6 +1665,7 @@ function launchReadAndFind(){
 function answerReadFind(idx,correct){
   completeSession('readAndFind');
   const ok=idx===correct;
+  trackListenResult(ok);
   earnStars(ok?15:5,ok?'+15⭐':'+5⭐',document.querySelectorAll('#listen-opts .convo-opt')[idx]);
   document.getElementById('listen-fb').textContent=ok?'🎉 Well done! You found the answer in the text!':'Good try! Read the passage again carefully.';
   document.getElementById('listen-fb').style.display='block';
@@ -1696,6 +1749,7 @@ function launchListenPoint(){
 function answerListenPoint(chosen,correct){
   completeSession('listenPoint');
   const ok=chosen===correct;
+  trackListenResult(ok);
   earnStars(ok?15:5,ok?'+15⭐ Correct!':'+5⭐',document.querySelector('#listen-opts .convo-opt'));
   document.getElementById('listen-fb').textContent=ok?`🎉 That's right! ${correct}`:`The answer is ${correct} — listen again!`;
   document.getElementById('listen-fb').style.display='block';
@@ -1989,7 +2043,22 @@ function checkBadges(){
 }
 function renderBadges(){
   if(!CU)return;
-  document.getElementById('badges-grid').innerHTML=BADGES.map(b=>{const e=b.check(CU.progress||{});return`<div class="badge-chip ${e?'earned':''}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div style="font-size:9px;color:var(--text3)">${b.desc}</div></div>`;}).join('');
+  const p=CU.progress||{};
+  const earned=BADGES.filter(b=>b.check(p)).length;
+  const TIER_LABELS=['','🥉 Bronze','🥈 Silver','🥇 Gold'];
+  const TIER_COLORS=['','#cd7f32','#a8a9ad','#ffd700'];
+  let html=`<div style="text-align:center;margin-bottom:12px"><span style="font-size:13px;color:var(--text2)">${earned} of ${BADGES.length} badges earned</span><div style="height:6px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${Math.round(earned/BADGES.length*100)}%;background:linear-gradient(90deg,var(--sky),var(--berry));transition:width .4s"></div></div></div>`;
+  [1,2,3].forEach(tier=>{
+    const list=BADGES.filter(b=>b.tier===tier);
+    const earnedInTier=list.filter(b=>b.check(p)).length;
+    html+=`<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:15px;font-weight:900;color:${TIER_COLORS[tier]}">${TIER_LABELS[tier]}</span><span style="font-size:11px;color:var(--text2)">${earnedInTier}/${list.length}</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">`;
+    list.forEach(b=>{
+      const e=b.check(p);
+      html+=`<div class="badge-chip ${e?'earned':''}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div style="font-size:9px;color:var(--text3)">${b.desc}</div></div>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('badges-grid').innerHTML=html;
 }
 function renderMap(){
   const p=CU?.progress||{};
