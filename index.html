@@ -297,6 +297,14 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
 <div id="ssl-activities" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:480px"></div>
 </div>
 
+<!-- ===== STORY SELECT ===== -->
+<div id="s-story-select" class="screen">
+<button class="back-btn" onclick="goTo('s-home')">← Home</button>
+<div style="font-weight:900;font-size:20px;text-align:center;margin-bottom:4px">📚 Choose a Story</div>
+<div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:12px">Pick a story to read with Kunang!</div>
+<div id="story-cards" style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:480px"></div>
+</div>
+
 <!-- ===== STORY ===== -->
 <div id="s-story" class="screen">
 <div style="width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-between">
@@ -741,6 +749,7 @@ function goTo(id){
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
   if(id==='s-home')renderHome();
+  if(id==='s-story-select')renderStorySelect();
   if(id==='s-badges')renderBadges();
   if(id==='s-map')renderMap();
   if(id==='s-teacher-home')renderTeacherHome();
@@ -815,7 +824,8 @@ function renderHome(){
   const p=CU.progress;
   if((p.momentIdx||0)>0||(p.sentsDone||0)>0){
     document.getElementById('continue-card').classList.remove('hidden');
-    document.getElementById('continue-desc').textContent='Part: '+(MOMENTS[Math.min(p.momentIdx||0,MOMENTS.length-1)]?.title||'')+'  · Sentence '+(p.sentsDone+1);
+    const cStory=STORIES.find(s=>s.id===(p.storyId||'aina'))||STORIES[0];
+    document.getElementById('continue-desc').textContent=(p.storyTitle||cStory.title)+' · '+(cStory.moments[Math.min(p.momentIdx||0,cStory.moments.length-1)]?.title||'');
   } else document.getElementById('continue-card').classList.add('hidden');
   renderSessions();
 }
@@ -879,7 +889,9 @@ function renderLbList(elId,clsId,highlightId){
 }
 
 // ===== STORY DATA =====
-const MOMENTS=[
+// ===== ALL STORIES =====
+const STORIES=[
+{id:'aina',title:"Aina's Happy Heart",icon:'🧺',level:'Year 3',desc:'A mystery in the longhouse — who took the basket?',color:'#0077A8',moments:[
   {title:"Aina Wakes Up 🌅",sentences:[
     {html:`Aina woke up early in the <g d="longhouse" e="🏠" df="A long house where many families live together">longhouse</g>.`,hint:"Say it slowly: long-house!"},
     {html:`She could smell the <g d="forest" e="🌿" df="A big area with many trees">forest</g> air outside.`,hint:"Forest — like a big jungle park!"},
@@ -905,13 +917,90 @@ const MOMENTS=[
     {html:`She <g d="gently" e="🤲" df="In a soft, careful way">gently</g> picked up the little squirrel.`,hint:"Gently — very softly!"},
     {html:`"Thank you, little friend! You made today even more special!"`,hint:"Read it like Aina is really happy!"},
   ],feelCheck:{prompt:"How do YOU feel when someone is kind to you?",faces:[{e:"🥰",l:"Loved"},{e:"😄",l:"Happy"},{e:"😮",l:"Surprised"},{e:"🤗",l:"Grateful"}],responses:{"🥰":"Loved — kindness makes us feel loved!","😄":"Happy — kindness brings happiness!","😮":"Sometimes kindness surprises us!","🤗":"Grateful — a wonderful feeling!"}},listeningCheck:{instruction:"Last listen! 👂",audio:"Aina laughed with joy and gently picked up the squirrel. She said: thank you, little friend!",q:"What did Aina say to the squirrel?",opts:["Go away!","Thank you, little friend!","Come back later!"],correct:1},speakingPrompt:"Say this! 👄 'Thank you, little friend!'"},
-];
-const CLUES={'clue-a':{text:'🔍 Clue: Look near the fire — something is there!'},'clue-b':{text:'🔍 Clue: The sound came from outside the longhouse!'},'clue-c':{text:'🔍 Clue: Animals can be kind too — just like people!'}};
-const CONVO_Qs=[
+],clues:{'clue-a':{text:'🔍 Clue: Look near the fire — something is there!'},'clue-b':{text:'🔍 Clue: The sound came from outside the longhouse!'},'clue-c':{text:'🔍 Clue: Animals can be kind too — just like people!'}},convoQs:[
   {q:"What do you think Aina should say to the squirrel?",opts:[{i:"🙏",t:"Thank you for your kindness!",r:"Beautiful! Saying thank you is always the right choice."},{i:"🐿️",t:"You are my new best friend!",r:"Aww! Aina would love a furry forest friend."},{i:"🍓",t:"Let us share the fruit together!",r:"Sharing is caring — what a generous heart!"},{i:"🏠",t:"Would you like to live with us?",r:"Such a big, welcoming heart!"}],correct:-1},
   {q:"Have you ever lost something important and then found it?",opts:[{i:"😅",t:"I was so relieved!",r:"Relief is such a wonderful feeling!"},{i:"😊",t:"I felt happy and wanted to tell everyone!",r:"That joy of finding something lost — so special!"},{i:"🤔",t:"I promised to be more careful.",r:"Every experience teaches us something."},{i:"🥹",t:"I was so happy I almost cried!",r:"Sometimes happiness is so big it brings tears — that's perfectly okay!"}],correct:-1},
   {q:"What would YOU do to make someone you love feel special?",opts:[{i:"🎨",t:"Make them something with my hands",r:"Handmade gifts come from the heart!"},{i:"🌸",t:"Give them flowers or a special gift",r:"A little gift can make a big smile!"},{i:"🤗",t:"Give them a big hug and spend time together",r:"The best gift — your time and love!"},{i:"💬",t:"Write a card or say 'I love you'",r:"Simple and so powerful!"}],correct:-1},
+]},
+// ─────────────────────────────────────────────────────────────────────────────
+{id:'mia',title:"Mia at the Market",icon:'🛒',level:'Year 3',desc:'Mia and her grandmother visit the busy pasar pagi.',color:'#e67e22',moments:[
+  {title:"A Busy Morning 🌅",sentences:[
+    {html:`Mia woke up and smelled something <g d="delicious" e="😋" df="Smells or tastes very good">delicious</g>.`,hint:"De-li-cious — something yummy!"},
+    {html:`"Today we go to the <g d="market" e="🛒" df="A place where people buy and sell things">market</g>!" said Nenek.`,hint:"Market — like a pasar!"},
+    {html:`Mia felt very <g d="excited" e:"🤩" df="Very happy and looking forward to something">excited</g>.`,hint:"Excited — a bubbly, happy feeling!"},
+  ],listeningCheck:{instruction:"Listen carefully! 👂",audio:"Mia woke up early. Her grandmother said they were going to the market.",q:"Where were Mia and her grandmother going?",opts:["To school","To the market","To the river"],correct:1},speakingPrompt:"Say this! 👄 'I am going to the market!'"},
+  {title:"So Many Colours! 🌈",sentences:[
+    {html:`The market was <g d="colourful" e="🌈" df="Having many bright colours">colourful</g> and noisy.`,hint:"Col-our-ful — like a rainbow!"},
+    {html:`Mia saw <g d="vegetables" e="🥦" df="Plants we eat to stay healthy">vegetables</g> piled up high <span class="clue-beacon" data-clue="mclue-a">🔍</span>.`,hint:"Vegetables — broccoli, carrots, spinach!"},
+    {html:`Everything smelled <g d="fresh" e="🌿" df="Newly picked, clean and natural">fresh</g> and wonderful.`,hint:"Fresh — like morning air!"},
+  ],feelCheck:{prompt:"How do you feel when you visit a busy, colourful place?",faces:[{e:"🤩",l:"Amazed"},{e:"😄",l:"Happy"},{e:"😵",l:"Dizzy"},{e:"🥰",l:"Excited"}],responses:{"🤩":"Amazed — so many things to see!","😄":"Happy — colours make us happy!","😵":"Sometimes so much to look at!","🥰":"Excited — that bubbly feeling!"}},listeningCheck:{instruction:"Listen! 👂",audio:"The market was colourful and noisy. Mia saw vegetables piled up high and everything smelled fresh.",q:"What did Mia see piled up high?",opts:["Fruit","Vegetables","Clothes"],correct:1},speakingPrompt:"Say this! 👄 'I can see so many colours!'"},
+  {title:"The Missing Purse! 👛",sentences:[
+    {html:`Nenek reached into her bag — her <g d="purse" e="👛" df="A small bag for keeping money">purse</g> was gone!`,hint:"Purse — the little bag for money!"},
+    {html:`Mia felt her heart <g d="drop" e="💔" df="Sink with worry or sadness">drop</g> <span class="clue-beacon" data-clue="mclue-b">🔍</span>.`,hint:"Heart drop — suddenly feeling worried!"},
+    {html:`"Don't worry, Nenek. We will find it <g d="together" e="🤝" df="Working as a team">together</g>!"`,hint:"Together — as a team!"},
+  ],listeningCheck:{instruction:"Listen! 👂",audio:"Nenek's purse was missing. Mia said: don't worry, we will find it together!",q:"What did Mia say to her grandmother?",opts:["Let us go home","Don't worry, we will find it together","I am scared"],correct:1},speakingPrompt:"Say this! 👄 'Don't worry. We will find it!'"},
+  {title:"A Kind Shopkeeper 🤝",sentences:[
+    {html:`A <g d="shopkeeper" e="🧑‍💼" df="A person who owns or works in a shop">shopkeeper</g> waved at them.`,hint:"Shop-keep-er — the person selling things!"},
+    {html:`"I found this purse on the <g d="ground" e="🌍" df="The floor or surface below us">ground</g>!" he said <span class="clue-beacon" data-clue="mclue-c">🔍</span>.`,hint:"Ground — the floor outside!"},
+    {html:`Nenek smiled with <g d="relief" e="😮‍💨" df="The good feeling when something bad stops">relief</g>.`,hint:"Re-lief — when worry goes away!"},
+  ],feelCheck:{prompt:"How do you feel when a stranger helps you?",faces:[{e:"🙏",l:"Grateful"},{e:"😮",l:"Surprised"},{e:"🥰",l:"Touched"},{e:"😄",l:"Happy"}],responses:{"🙏":"Grateful — what a kind stranger!","😮":"Surprised — kindness can be unexpected!","🥰":"Touched — kindness warms the heart!","😄":"Happy — good people make us smile!"}},listeningCheck:{instruction:"Listen! 👂",audio:"A shopkeeper found the purse on the ground. Nenek smiled with relief.",q:"Where did the shopkeeper find the purse?",opts:["In a bag","On the ground","By the door"],correct:1},speakingPrompt:"Say this! 👄 'Thank you for being kind!'"},
+  {title:"Going Home Happy 🏠",sentences:[
+    {html:`Mia and Nenek bought <g d="fresh" e="🌿" df="Newly picked, clean and natural">fresh</g> vegetables and fruits.`,hint:"Fresh from the market!"},
+    {html:`"Being <g d="honest" e="💎" df="Truthful and doing what is right">honest</g> and kind costs nothing," said Nenek.`,hint:"Honest — always tell the truth!"},
+    {html:`Mia never forgot the lesson from the <g d="market" e="🛒" df="A place where people buy and sell things">market</g> that day.`,hint:"A lesson she will remember!"},
+  ],listeningCheck:{instruction:"Last listen! 👂",audio:"Mia and Nenek went home happy. Nenek said: being honest and kind costs nothing.",q:"What did Nenek say costs nothing?",opts:["Food","Being honest and kind","The vegetables"],correct:1},speakingPrompt:"Say this! 👄 'Being kind costs nothing!'"},
+],clues:{'mclue-a':{text:'🔍 Clue: The vegetables here come from a farm nearby!'},'mclue-b':{text:'🔍 Clue: The purse fell out when Nenek picked up the mangoes!'},'mclue-c':{text:'🔍 Clue: Kindness can come from strangers too!'}},convoQs:[
+  {q:"What would you do if you found someone's purse?",opts:[{i:"🙋",t:"Return it to the owner right away!",r:"Honest and brave — that is the right thing!"},{i:"🔍",t:"Look for the owner's name inside.",r:"Smart thinking — check for clues!"},{i:"👮",t:"Give it to a security guard or teacher.",r:"Great — asking a trusted adult is always safe!"},{i:"🤔",t:"Wait to see if the owner comes back.",r:"Patient and thoughtful!"}],correct:-1},
+  {q:"Have you ever been to a market? What did you see?",opts:[{i:"🥦",t:"So many vegetables and fruits!",r:"Markets are full of fresh, colourful food!"},{i:"👥",t:"Lots of people and noise!",r:"Markets are busy and lively!"},{i:"💰",t:"People buying and selling things.",r:"That is how a market works — great observation!"},{i:"🤷",t:"I have never been to a market.",r:"That is okay — maybe you can visit one day!"}],correct:-1},
+  {q:"Who do you think showed the most kindness in this story?",opts:[{i:"🧑‍💼",t:"The shopkeeper who returned the purse.",r:"Yes — he did not have to, but he did!"},{i:"👧",t:"Mia who comforted her grandmother.",r:"Mia showed such love and courage!"},{i:"👵",t:"Nenek who shared her wisdom.",r:"Wise grandmothers are a gift!"},{i:"🌈",t:"Everyone was kind in their own way!",r:"Wonderful — kindness is everywhere if we look!"}],correct:-1},
+]},
+// ─────────────────────────────────────────────────────────────────────────────
+{id:'raju',title:"Raju's Diwali Light",icon:'🪔',level:'Year 4',desc:"Raju's family prepares for Deepavali — but one lamp goes out.",color:'#8e44ad',moments:[
+  {title:"Getting Ready! 🎉",sentences:[
+    {html:`It was the day before <g d="Deepavali" e="🪔" df="A Hindu festival of lights celebrated in Malaysia">Deepavali</g>!`,hint:"Deep-a-va-li — Festival of Lights!"},
+    {html:`Raju helped his mother make <g d="rangoli" e="🎨" df="Colourful patterns drawn on the floor">rangoli</g> at the door.`,hint:"Rangoli — beautiful floor patterns!"},
+    {html:`The whole house smelled of <g d="flowers" e="🌺" df="Pretty plants that bloom in colour">flowers</g> and <g d="incense" e="🕯️" df="Something burned to make a nice smell">incense</g>.`,hint:"Incense — it smells warm and sweet!"},
+  ],listeningCheck:{instruction:"Listen carefully! 👂",audio:"It was the day before Deepavali. Raju helped his mother make rangoli at the door.",q:"What did Raju help his mother make?",opts:["Food","Rangoli","A card"],correct:1},speakingPrompt:"Say this! 👄 'Deepavali is the Festival of Lights!'"},
+  {title:"Lighting the Lamps 🪔",sentences:[
+    {html:`Raju carefully filled each <g d="oil lamp" e="🪔" df="A small lamp that burns oil to give light">oil lamp</g> with oil.`,hint:"Oil lamp — it gives a warm, gentle light!"},
+    {html:`He placed them along the <g d="entrance" e="🚪" df="The doorway or path into a place">entrance</g> of the house.`,hint:"En-trance — where you walk in!"},
+    {html:`The flames <g d="flickered" e="🔥" df="Moved quickly and lightly like a little dance">flickered</g> in the evening breeze <span class="clue-beacon" data-clue="rclue-a">🔍</span>.`,hint:"Flickered — like a flame dancing!"},
+  ],feelCheck:{prompt:"How do you feel when you see lights glowing in the dark?",faces:[{e:"🥰",l:"Warm"},{e:"😮",l:"Amazed"},{e:"😌",l:"Peaceful"},{e:"🤩",l:"Excited"}],responses:{"🥰":"Warm — lights make our hearts glow!"," 😮":"Amazed — there is magic in light!","😌":"Peaceful — soft light is so calming!","🤩":"Excited — Deepavali is a dazzling night!"}},listeningCheck:{instruction:"Listen! 👂",audio:"Raju placed oil lamps along the entrance of the house. The flames flickered in the breeze.",q:"Where did Raju place the oil lamps?",opts:["In the kitchen","Along the entrance","On the table"],correct:1},speakingPrompt:"Say this! 👄 'The flame is warm and bright!'"},
+  {title:"One Lamp Goes Out! 😱",sentences:[
+    {html:`Suddenly, one lamp went <g d="out" e="💨" df="Stopped burning, no more light">out</g>!`,hint:"Out — no more light!"},
+    {html:`Raju felt <g d="disappointed" e="😞" df="Sad because something did not go as hoped">disappointed</g> <span class="clue-beacon" data-clue="rclue-b">🔍</span>.`,hint:"Dis-ap-point-ed — when things don't go as planned!"},
+    {html:`But his father said, "In life, sometimes a light goes out. We <g d="relight" e="🔦" df="Light something again">relight</g> it."`,hint:"Relight — start again with hope!"},
+  ],listeningCheck:{instruction:"Listen! 👂",audio:"One lamp went out. Raju felt disappointed. His father said: we relight it.",q:"What did Raju's father say to do when a light goes out?",opts:["Leave it","Buy a new one","Relight it"],correct:2},speakingPrompt:"Say this! 👄 'We will try again!'"},
+  {title:"Working Together 🤝",sentences:[
+    {html:`Raju and his father <g d="carefully" e="🎯" df="With great attention and care">carefully</g> relit the lamp.`,hint:"Care-ful-ly — doing something with love!"},
+    {html:`His sister brought more oil to keep the <g d="flame" e="🔥" df="The burning fire of a lamp or candle">flame</g> alive <span class="clue-beacon" data-clue="rclue-c">🔍</span>.`,hint:"Flame — the glowing fire!"},
+    {html:`Working together made everything feel <g d="possible" e="✨" df="Something that can be done">possible</g>.`,hint:"Pos-si-ble — anything can happen!"},
+  ],feelCheck:{prompt:"When you work with your family to fix a problem, how do you feel?",faces:[{e:"💪",l:"Strong"},{e:"🥰",l:"Loved"},{e:"😄",l:"Happy"},{e:"🙏",l:"Grateful"}],responses:{"💪":"Strong — teamwork makes us powerful!","🥰":"Loved — family love is the best!","😄":"Happy — solving problems together feels great!","🙏":"Grateful — family is a true blessing!"}},listeningCheck:{instruction:"Listen! 👂",audio:"Raju and his father carefully relit the lamp. His sister brought more oil. Working together made everything possible.",q:"Who brought more oil to keep the flame alive?",opts:["His mother","His father","His sister"],correct:2},speakingPrompt:"Say this! 👄 'Together, we can do anything!'"},
+  {title:"A Bright Celebration ✨",sentences:[
+    {html:`That night, all the lamps <g d="glowed" e="✨" df="Shone with a soft, warm light">glowed</g> beautifully.`,hint:"Glowed — like a warm, steady light!"},
+    {html:`Neighbours came to <g d="celebrate" e="🎉" df="To do something fun for a special occasion">celebrate</g> together.`,hint:"Cel-e-brate — mark a happy day!"},
+    {html:`Raju understood — Deepavali is not just about lights. It is about <g d="love" e="❤️" df="A deep feeling of caring for someone">love</g>.`,hint:"The real light comes from inside us!"},
+  ],listeningCheck:{instruction:"Last listen! 👂",audio:"All the lamps glowed beautifully. Raju understood that Deepavali is not just about lights. It is about love.",q:"What did Raju learn Deepavali is really about?",opts:["Fireworks","Love","Food"],correct:1},speakingPrompt:"Say this! 👄 'Deepavali is about love and light!'"},
+],clues:{'rclue-a':{text:'🔍 Clue: The wind near the door is stronger at night!'},'rclue-b':{text:'🔍 Clue: Oil lamps need to be sheltered from the breeze!'},'rclue-c':{text:'🔍 Clue: When one person helps, the work becomes lighter!'}},convoQs:[
+  {q:"What do you think Deepavali teaches us?",opts:[{i:"💡",t:"Light always overcomes darkness.",r:"A beautiful and true lesson!"},{i:"🤝",t:"Family and togetherness matter most.",r:"Yes — Deepavali brings everyone together!"},{i:"🎁",t:"Sharing sweets and gifts brings joy.",r:"Giving really does make us happy!"},{i:"🌈",t:"All of the above!",r:"Exactly right — Deepavali teaches all of this!"}],correct:-1},
+  {q:"Does your family have a special celebration or tradition?",opts:[{i:"🎉",t:"Yes! We always celebrate together.",r:"That is so special — traditions connect us!"},{i:"🍛",t:"We cook special food for celebrations.",r:"Food brings people together beautifully!"},{i:"🕌",t:"We celebrate Eid / Raya with family.",r:"A wonderful time of love and togetherness!"},{i:"🤷",t:"We do not have a special tradition yet.",r:"Maybe you can start one — every tradition has a beginning!"}],correct:-1},
+  {q:"What is one thing you can do to bring light into someone's day?",opts:[{i:"😊",t:"Smile and say something kind.",r:"A smile is the simplest light of all!"},{i:"🤝",t:"Help them when they are struggling.",r:"Helping hands bring warmth and hope!"},{i:"💌",t:"Write them a kind note or message.",r:"Words of kindness are powerful!"},{i:"🌟",t:"Just be there and listen to them.",r:"Sometimes being present is the greatest gift!"}],correct:-1},
+]},
 ];
+
+// Active story state — set when student picks a story
+let MOMENTS=STORIES[0].moments;
+let CLUES=STORIES[0].clues;
+let CONVO_Qs=STORIES[0].convoQs;
+let _activeStory=STORIES[0];
+
+function loadStory(story){
+  _activeStory=story;
+  MOMENTS=story.moments;
+  CLUES=story.clues;
+  CONVO_Qs=story.convoQs;
+}
+
 const BADGES=[
   // ── READING ──────────────────────────────────────────────────────
   {id:'first',       tier:1, name:'First Read',      icon:'📖', desc:'Read your first sentence',      check:p=>p.sentsDone>=1},
@@ -962,13 +1051,50 @@ function initS(){
   S={stars:p.stars||0,sessionStars:0,sentsDone:p.sentsDone||0,momentIdx:p.momentIdx||0,sentIdx:p.sentIdx||0,helpCount:p.helpCount||0,hearAgainCount:p.hearAgainCount||0,cluesFound:p.cluesFound||0,storyComplete:p.storyComplete||false,convoIdx:0};
   Object.keys(CLUES).forEach(k=>{S['found_'+k]=false;});
 }
-function startStory(){initS();goTo('s-story');renderSentence();}
-function continueReading(){initS();goTo('s-story');renderSentence();}
+function startStory(){renderStorySelect();goTo('s-story-select');}
+function continueReading(){
+  // Load the story the student was on, then continue
+  const p=CU?.progress||{};
+  const story=STORIES.find(s=>s.id===(p.storyId||'aina'))||STORIES[0];
+  loadStory(story);initS();goTo('s-story');renderSentence();
+}
+function renderStorySelect(){
+  if(!CU)return;
+  const p=CU.progress||{};
+  document.getElementById('story-cards').innerHTML=STORIES.map(story=>{
+    const isActive=(p.storyId||'aina')===story.id;
+    const pct=isActive?Math.round(Math.min((p.sentsDone||0)/story.moments.reduce((a,m)=>a+m.sentences.length,0),1)*100):0;
+    const done=isActive&&p.storyComplete;
+    return`<div class="card" style="cursor:pointer;border:2px solid ${done?'var(--forest)':isActive?story.color:'var(--border)'};padding:16px;display:flex;align-items:center;gap:14px" onclick="pickStory('${story.id}')">
+      <div style="font-size:44px;flex-shrink:0">${story.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:900;font-size:15px">${story.title}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${story.level} · ${story.desc}</div>
+        ${isActive&&!done?`<div style="margin-top:8px;height:5px;background:var(--border);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${story.color};transition:width .4s"></div></div><div style="font-size:10px;color:var(--text2);margin-top:2px">${pct}% read</div>`:''}
+        ${done?`<div style="font-size:11px;color:var(--forest);font-weight:800;margin-top:4px">✅ Completed! Read again?</div>`:''}
+      </div>
+      <div style="font-size:22px">${done?'🏆':isActive&&pct>0?'▶️':'📖'}</div>
+    </div>`;
+  }).join('');
+}
+function pickStory(id){
+  const story=STORIES.find(s=>s.id===id)||STORIES[0];
+  loadStory(story);
+  if(!CU)return;
+  // If switching stories, reset reading progress but keep stars/tp
+  if((CU.progress.storyId||'aina')!==id){
+    CU.progress.storyId=id;
+    CU.progress.sentsDone=0;CU.progress.momentIdx=0;CU.progress.sentIdx=0;
+    CU.progress.storyComplete=false;CU.progress.cluesFound=0;
+    DB.users[CU.id]=CU;dbSave();
+  }
+  initS();goTo('s-story');renderSentence();
+}
 function exitStory(){saveP();goTo('s-home');}
 
 function saveP(){
   if(!CU)return;
-  Object.assign(CU.progress,{stars:S.stars,sentsDone:S.sentsDone,momentIdx:S.momentIdx,sentIdx:S.sentIdx,helpCount:S.helpCount,hearAgainCount:S.hearAgainCount,cluesFound:S.cluesFound,storyComplete:S.storyComplete});
+  Object.assign(CU.progress,{stars:S.stars,sentsDone:S.sentsDone,momentIdx:S.momentIdx,sentIdx:S.sentIdx,helpCount:S.helpCount,hearAgainCount:S.hearAgainCount,cluesFound:S.cluesFound,storyComplete:S.storyComplete,storyId:_activeStory?.id||'aina',storyTitle:_activeStory?.title});
   DB.users[CU.id]=CU;dbSave();
 }
 
