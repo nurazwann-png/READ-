@@ -1147,7 +1147,7 @@ function buildWordSpans(el){
   el.querySelectorAll('g').forEach(g=>{
     const span=document.createElement('span');
     span.className='ws gloss';
-    span.textContent=g.textContent+'💡';
+    span.textContent=g.textContent+' 🔍';
     span.style.cssText='background:#FFD60A;color:#1a1a2e;border-radius:6px;padding:2px 7px;cursor:pointer;font-weight:800;display:inline-block;line-height:1.4;box-shadow:0 2px 6px rgba(255,214,10,.4);transition:transform .1s';
     span.onmousedown=()=>span.style.transform='scale(.95)';
     span.onmouseup=()=>span.style.transform='scale(1)';
@@ -1414,7 +1414,7 @@ const ACTIVITIES={
   reading:{
     starter:[
       {icon:'🔤',title:'Word Flash',desc:'Hear a word — tap the right picture!',action:'readWordFlash'},
-      {icon:'📖',title:'Phonics Story',desc:'Read the story with lots of help and TTS support',action:'startStory'},
+      {icon:'🔡',title:'Phonics Blending',desc:'Sound out letters — blend them into a word!',action:'readPhonics'},
       {icon:'🖼️',title:'Picture Match',desc:'Match each word to the correct picture',action:'readPictureMatch'},
     ],
     explorer:[
@@ -1534,6 +1534,143 @@ function launchActivity(action){
   if(action==='speakRetell'){launchSpeakRetell();return;}
   if(action==='speakRolePlay'){launchSpeakRolePlay();return;}
   if(action==='speakTeach'){launchSpeakTeach();return;}
+  if(action==='readPhonics'){launchPhonics();return;}
+}
+
+// ===== PHONICS =====
+const PHONICS_WORDS=[
+  {word:'cat',sounds:['c','a','t'],pic:'🐱',family:'-at'},
+  {word:'hat',sounds:['h','a','t'],pic:'🎩',family:'-at'},
+  {word:'mat',sounds:['m','a','t'],pic:'🪣',family:'-at'},
+  {word:'bat',sounds:['b','a','t'],pic:'🦇',family:'-at'},
+  {word:'dog',sounds:['d','o','g'],pic:'🐶',family:'-og'},
+  {word:'log',sounds:['l','o','g'],pic:'🪵',family:'-og'},
+  {word:'fog',sounds:['f','o','g'],pic:'🌫️',family:'-og'},
+  {word:'sun',sounds:['s','u','n'],pic:'☀️',family:'-un'},
+  {word:'run',sounds:['r','u','n'],pic:'🏃',family:'-un'},
+  {word:'bun',sounds:['b','u','n'],pic:'🍞',family:'-un'},
+  {word:'cup',sounds:['c','u','p'],pic:'☕',family:'-up'},
+  {word:'pup',sounds:['p','u','p'],pic:'🐶',family:'-up'},
+  {word:'bed',sounds:['b','e','d'],pic:'🛏️',family:'-ed'},
+  {word:'red',sounds:['r','e','d'],pic:'🔴',family:'-ed'},
+  {word:'hen',sounds:['h','e','n'],pic:'🐔',family:'-en'},
+  {word:'pen',sounds:['p','e','n'],pic:'🖊️',family:'-en'},
+  {word:'pig',sounds:['p','i','g'],pic:'🐷',family:'-ig'},
+  {word:'big',sounds:['b','i','g'],pic:'🐘',family:'-ig'},
+  {word:'fig',sounds:['f','i','g'],pic:'🫐',family:'-ig'},
+  {word:'sit',sounds:['s','i','t'],pic:'🪑',family:'-it'},
+  {word:'bit',sounds:['b','i','t'],pic:'🦷',family:'-it'},
+  {word:'hit',sounds:['h','i','t'],pic:'🏏',family:'-it'},
+];
+let _phonicsIdx=0,_phonicsWord=null,_phonicsStep=0,_phonicsScore=0,_phonicsTotal=6;
+function launchPhonics(){
+  startSession('readPhonics','Phonics Blending','reading');
+  _phonicsScore=0;_phonicsIdx=0;
+  const pool=PHONICS_WORDS.slice().sort(()=>Math.random()-.5).slice(0,_phonicsTotal);
+  window._phonicsPool=pool;
+  showPhonicsRound(0);
+}
+function showPhonicsRound(idx){
+  _phonicsIdx=idx;
+  if(idx>=_phonicsTotal){
+    earnStars(20*_phonicsScore,'🎉 Phonics done!');
+    completeSession('readPhonics');
+    goTo('s-listening');
+    document.getElementById('listen-instruction').innerHTML=`<div style="text-align:center;padding:10px 0">
+      <div style="font-size:56px">🎉</div>
+      <div style="font-size:22px;font-weight:900;margin:10px 0">Well done!</div>
+      <div style="font-size:15px;color:var(--text2)">Score: ${_phonicsScore}/${_phonicsTotal}</div></div>`;
+    document.getElementById('listen-q-area').style.display='flex';
+    document.getElementById('listen-q').textContent='';
+    document.getElementById('listen-opts').innerHTML=`<div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-sky" style="max-width:180px" onclick="launchPhonics()">▶ Play Again</button>
+      <button class="btn btn-ghost" style="max-width:180px" onclick="goTo('s-home')">🏠 Home</button></div>`;
+    document.getElementById('listen-next').style.display='none';
+    return;
+  }
+  _phonicsWord=window._phonicsPool[idx];
+  _phonicsStep=0;
+  goTo('s-listening');
+  document.getElementById('listen-q-area').style.display='flex';
+  document.getElementById('listen-q').textContent=`Word ${idx+1} of ${_phonicsTotal}`;
+  renderPhonicsStep();
+}
+function renderPhonicsStep(){
+  const w=_phonicsWord;
+  const el=document.getElementById('listen-instruction');
+  const optsEl=document.getElementById('listen-opts');
+  document.getElementById('listen-next').style.display='none';
+  _playAgainFn=null;
+  if(_phonicsStep===0){
+    // Show emoji + "What word is this?"
+    el.innerHTML=`<div style="text-align:center;padding:10px 0">
+      <div style="font-size:72px;line-height:1;margin-bottom:10px">${w.pic}</div>
+      <div style="font-size:15px;color:var(--text2)">What word is this? Listen to find out!</div>
+    </div>`;
+    optsEl.innerHTML=`<button class="btn btn-sky" onclick="phonicsNext()">🔊 Hear the word</button>`;
+  } else if(_phonicsStep===1){
+    // Sound it out letter by letter
+    el.innerHTML=`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:52px;line-height:1;margin-bottom:8px">${w.pic}</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Sound it out — tap each letter!</div>
+      <div style="display:flex;gap:10px;justify-content:center">${w.sounds.map((s,i)=>`
+        <button id="psnd-${i}" onclick="phonicsSaySound('${s}',${i})" style="width:52px;height:52px;border-radius:12px;border:3px solid var(--sky);background:var(--surface2);font-size:24px;font-weight:900;cursor:pointer;color:var(--text);transition:all .15s">${s}</button>`).join('')}
+      </div>
+    </div>`;
+    optsEl.innerHTML=`<button class="btn btn-sun" onclick="phonicsNext()">✅ I said them all — Blend!</button>`;
+  } else if(_phonicsStep===2){
+    // Blend — show word being built
+    el.innerHTML=`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:52px;line-height:1;margin-bottom:8px">${w.pic}</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Now blend them together!</div>
+      <div style="font-size:40px;font-weight:900;letter-spacing:4px;color:var(--sky)">${w.word}</div>
+    </div>`;
+    _playAgainFn=()=>TTS.speak(w.word);
+    optsEl.innerHTML=`<button class="btn btn-sky" onclick="TTS.speak('${w.word}')">🔊 Hear it blended</button>`;
+    document.getElementById('listen-next').style.display='flex';
+    document.getElementById('listen-next').textContent='Next →';
+    document.getElementById('listen-next').onclick=()=>phonicsPickAnswer();
+  } else if(_phonicsStep===3){
+    // Pick the right word from 3 choices
+    const others=PHONICS_WORDS.filter(x=>x.word!==w.word).sort(()=>Math.random()-.5).slice(0,2);
+    const choices=[w,...others].sort(()=>Math.random()-.5);
+    el.innerHTML=`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:52px;line-height:1;margin-bottom:8px">${w.pic}</div>
+      <div style="font-size:15px;color:var(--text2)">Which word matches the picture?</div>
+    </div>`;
+    optsEl.innerHTML=choices.map(c=>`
+      <button class="btn" style="background:var(--surface2);color:var(--text);border:2px solid var(--border);font-size:20px;font-weight:900;letter-spacing:2px" onclick="phonicsCheckAnswer('${c.word}','${w.word}',this)">${c.word}</button>`).join('');
+  }
+}
+function phonicsSaySound(s,i){
+  TTS.speak(s);
+  const btn=document.getElementById('psnd-'+i);
+  if(btn){btn.style.background='#FFD60A';btn.style.color='#1a1a2e';}
+}
+function phonicsNext(){
+  _phonicsStep++;
+  if(_phonicsStep===1)TTS.speak(_phonicsWord.word);
+  renderPhonicsStep();
+}
+function phonicsPickAnswer(){_phonicsStep=3;renderPhonicsStep();}
+function phonicsCheckAnswer(chosen,correct,btn){
+  document.querySelectorAll('#listen-opts .btn').forEach(b=>b.disabled=true);
+  if(chosen===correct){
+    btn.style.background='#27ae60';btn.style.color='#fff';
+    _phonicsScore++;earnStars(10,'⭐ +10 Correct!',btn);
+    TTS.speak('Correct! '+correct);
+    document.getElementById('listen-next').style.display='flex';
+    document.getElementById('listen-next').textContent='Next word →';
+    document.getElementById('listen-next').onclick=()=>showPhonicsRound(_phonicsIdx+1);
+  } else {
+    btn.style.background='#e74c3c';btn.style.color='#fff';
+    TTS.speak('Try again! The word is '+correct);
+    setTimeout(()=>{
+      document.getElementById('listen-next').style.display='flex';
+      document.getElementById('listen-next').textContent='Next word →';
+      document.getElementById('listen-next').onclick=()=>showPhonicsRound(_phonicsIdx+1);
+    },1200);
+  }
 }
 
 // ===== MINI ACTIVITIES =====
