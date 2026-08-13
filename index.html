@@ -1136,8 +1136,11 @@ function renderSentence(){
 function buildWordSpans(el){
   el.querySelectorAll('g').forEach(g=>{
     const span=document.createElement('span');
-    span.className='ws gloss';span.textContent=g.textContent;
-    span.style.cssText='background:var(--mint);border-radius:4px;padding:0 2px;cursor:pointer';
+    span.className='ws gloss';
+    span.textContent=g.textContent+'💡';
+    span.style.cssText='background:#FFD60A;color:#1a1a2e;border-radius:6px;padding:2px 7px;cursor:pointer;font-weight:800;display:inline-block;line-height:1.4;box-shadow:0 2px 6px rgba(255,214,10,.4);transition:transform .1s';
+    span.onmousedown=()=>span.style.transform='scale(.95)';
+    span.onmouseup=()=>span.style.transform='scale(1)';
     const df=g.getAttribute('df')||'',em=g.getAttribute('e')||'';
     span.onclick=()=>showGloss(em+' '+g.getAttribute('d')+': '+df);
     g.replaceWith(span);
