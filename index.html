@@ -198,6 +198,7 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
     <div class="field"><label>Year</label>
       <select id="delima-reg-year"><option value="1">Year 1</option><option value="2">Year 2</option><option value="3" selected>Year 3</option><option value="4">Year 4</option><option value="5">Year 5</option></select>
     </div>
+    <div class="field"><label>Parent's WhatsApp Number</label><input id="delima-reg-phone" placeholder="e.g. 0123456789" type="tel" inputmode="numeric"></div>
     <button class="btn btn-sky" onclick="delimaRegister()">Create Account</button>
     <div id="delima-reg-err" style="color:var(--coral);font-size:12px;text-align:center"></div>
   </div>
@@ -256,6 +257,7 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
     <button class="btn btn-forest" style="flex:1" onclick="goTo('s-badges')">🏅 Badges</button>
     <button class="btn btn-berry" style="flex:1" onclick="goTo('s-map')">🗺️ Journey</button>
   </div>
+  <button class="btn" onclick="shareProgressWhatsApp()" style="background:#25D366;color:#fff">📱 Send Progress to Parent</button>
   <button class="btn btn-ghost" onclick="logout()">← Log Out</button>
 </div>
 </div>
@@ -420,7 +422,7 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
   <div style="display:flex;justify-content:space-between;font-size:14px"><span>Stars Earned</span><span class="star-bar">⭐ <span id="cel-stars">0</span></span></div>
   <div style="display:flex;justify-content:space-between;font-size:14px"><span>Sentences Read</span><span id="cel-sents">0</span></div>
   <div style="display:flex;justify-content:space-between;font-size:14px"><span>Clues Found</span><span id="cel-clues">0/3</span></div>
-  <button class="btn btn-forest" onclick="shareWhatsApp()" style="background:#25D366;border-color:#25D366">💬 Share on WhatsApp</button>
+  <button class="btn" onclick="shareProgressWhatsApp()" style="background:#25D366;color:#fff">📱 Send Progress to Parent</button>
   <button class="btn btn-forest" onclick="goTo('s-home')">🏠 Home</button>
 </div>
 </div>
@@ -796,8 +798,9 @@ function delimaRegister(){
   const email=v('delima-email').toLowerCase().trim(),pass=v('delima-pass'),name=v('delima-reg-name').trim(),year=parseInt(v('delima-reg-year'));
   if(!name||!email||pass.length<4){document.getElementById('delima-reg-err').textContent='Fill all fields (min 4-char password)';return;}
   if(Object.values(DB.users).find(u=>u.email===email)){document.getElementById('delima-reg-err').textContent='Email already registered';return;}
+  const phone=document.getElementById('delima-reg-phone')?.value.trim()||'';
   const id='stu_'+email.split('@')[0]+'_'+Date.now();
-  DB.users[id]={id,name,role:'student',email,password:pass,avatar:null,classroomId:null,year,progress:{stars:0,totalStars:0,sentsDone:0,momentIdx:0,sentIdx:0,helpCount:0,hearAgainCount:0,cluesFound:0,storyComplete:false,listeningCorrect:0,listeningTotal:0,speakingRatings:[],sessions:[]}};
+  DB.users[id]={id,name,role:'student',email,password:pass,avatar:null,classroomId:null,year,parentPhone:phone,progress:{stars:0,totalStars:0,sentsDone:0,momentIdx:0,sentIdx:0,helpCount:0,hearAgainCount:0,cluesFound:0,storyComplete:false,listeningCorrect:0,listeningTotal:0,speakingRatings:[],sessions:[]}};
   dbSave();CU=DB.users[id];sessionSave();closeModal('delima-modal');buildAvatarGrid();goTo('s-avatar');
 }
 function logout(){CU=null;sessionStorage.clear();goTo('s-landing');}
@@ -2322,6 +2325,23 @@ function shareWhatsApp(){
 
 _Sent from READ+ by Cikgu Anis & Cikgu Wanie_ ✨`;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+function shareProgressWhatsApp(){
+  if(!CU){toast('Please log in first');return;}
+  const p=CU.progress||{};
+  const name=CU.name||'Student';
+  const year=CU.year||3;
+  const tpR=calcReadingTP(p,year)||1;
+  const tpL=calcListeningTP(p,year)||1;
+  const tpS=calcSpeakingTP(p,year)||1;
+  const stars=p.stars||0;
+  const done=(p.sessions||[]).filter(s=>s.completed).length;
+  const badgeCount=BADGES.filter(b=>b.check(p)).length;
+  const storyTitle=_activeStory?.title||'Story';
+  const txt=`📚 *READ+ Progress Report*\n👤 Pelajar: ${name}\n🏫 SK Kampung Petanak, Mukah\n📅 Tarikh: ${new Date().toLocaleDateString('ms-MY')}\n\n⭐ Bintang: ${stars}\n✅ Aktiviti selesai: ${done}\n🏅 Lencana: ${badgeCount}/${BADGES.length}\n📖 Cerita: ${storyTitle}\n\n📊 *Tahap Penguasaan (TP)*\n📖 Membaca: TP ${tpR} — ${TP_LABELS[tpR]||''}\n👂 Mendengar: TP ${tpL} — ${TP_LABELS[tpL]||''}\n🗣️ Bertutur: TP ${tpS} — ${TP_LABELS[tpS]||''}\n\n_Dihantar melalui READ+ oleh Cikgu Anis & Cikgu Wanie_ ✨`;
+  const rawPhone=(CU.parentPhone||'').replace(/[^0-9]/g,'');
+  const phone=rawPhone.startsWith('0')?'60'+rawPhone.slice(1):rawPhone;
+  window.open('https://wa.me/'+(phone||'')+'?text='+encodeURIComponent(txt),'_blank');
 }
 
 // ===== BADGES & MAP =====
