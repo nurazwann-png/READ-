@@ -549,6 +549,26 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
   <div id="sd-tp-grid" style="display:flex;flex-direction:column;gap:6px"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sd-stats"></div>
   <div id="sd-plan" style="background:var(--surface2);border-radius:14px;padding:14px;font-size:12px;line-height:1.6"></div>
+  <div style="border-top:1px solid var(--border);padding-top:12px">
+    <div style="font-weight:800;font-size:13px;margin-bottom:8px">✏️ Override TP (Teacher)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div class="field"><label>📖 Reading</label>
+        <select id="sd-tp-r-override"><option value="">Auto</option><option value="1">TP 1</option><option value="2">TP 2</option><option value="3">TP 3</option><option value="4">TP 4</option><option value="5">TP 5</option><option value="6">TP 6</option></select>
+      </div>
+      <div class="field"><label>👂 Listening</label>
+        <select id="sd-tp-l-override"><option value="">Auto</option><option value="1">TP 1</option><option value="2">TP 2</option><option value="3">TP 3</option><option value="4">TP 4</option><option value="5">TP 5</option><option value="6">TP 6</option></select>
+      </div>
+      <div class="field"><label>🗣️ Speaking</label>
+        <select id="sd-tp-s-override"><option value="">Auto</option><option value="1">TP 1</option><option value="2">TP 2</option><option value="3">TP 3</option><option value="4">TP 4</option><option value="5">TP 5</option><option value="6">TP 6</option></select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:8px"><label>Note (reason for override)</label>
+      <input id="sd-tp-note" placeholder="e.g. Assessed in class today">
+    </div>
+    <input type="hidden" id="sd-current-stu-id">
+    <button class="btn btn-forest btn-sm" style="width:auto;padding:8px 18px" onclick="saveTPOverride()">💾 Save TP Override</button>
+    <div id="sd-override-note" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
+  </div>
   <button class="btn btn-ghost" onclick="closeModal('stu-detail-modal')">Close</button>
 </div>
 </div>
@@ -715,6 +735,7 @@ const TP_SHORT=['','Requires Support','On Track to Achieve','Achieves Expectatio
 let _qShownAt=0; // timestamp when a question was shown to the student
 
 function calcReadingTP(p,year){
+  if(p.tpOverride?.reading)return p.tpOverride.reading;
   const h=p.helpCount||0,s=p.sentsDone||0,done=p.storyComplete,c=p.cluesFound||0;
   const yr=Math.min(year||3,5);
   const t={1:8,2:11,3:14,4:17,5:20}[yr];
@@ -726,6 +747,7 @@ function calcReadingTP(p,year){
   return 1;
 }
 function calcListeningTP(p,year){
+  if(p.tpOverride?.listening)return p.tpOverride.listening;
   const ha=p.hearAgainCount||0,lc=p.listeningCorrect||0,lt=p.listeningTotal||0;
   if(lt<2)return null;
   const sc=lc/lt;
@@ -737,6 +759,7 @@ function calcListeningTP(p,year){
   return 1;
 }
 function calcSpeakingTP(p,year){
+  if(p.tpOverride?.speaking)return p.tpOverride.speaking;
   const r=p.speakingRatings||[];
   if(r.length<2)return null;
   const avg=r.reduce((a,b)=>a+b,0)/r.length;
@@ -2543,7 +2566,31 @@ function showStuDetail(stuId){
     <div style="background:var(--surface2);padding:10px;border-radius:12px;text-align:center"><div style="font-size:20px;font-weight:900">${p.cluesFound||0}/3</div><div style="font-size:10px;color:var(--text2)">Clues</div></div>`;
   const plan=getInterventionPlan(tpR||1,s.name.split(' ')[0]);
   document.getElementById('sd-plan').innerHTML='<b>Intervention Plan:</b><br>'+plan;
+  // Populate TP override fields
+  document.getElementById('sd-current-stu-id').value=stuId;
+  const ov=p.tpOverride||{};
+  document.getElementById('sd-tp-r-override').value=ov.reading||'';
+  document.getElementById('sd-tp-l-override').value=ov.listening||'';
+  document.getElementById('sd-tp-s-override').value=ov.speaking||'';
+  document.getElementById('sd-tp-note').value=ov.note||'';
+  document.getElementById('sd-override-note').textContent=ov.by?'Last set by '+ov.by+' · '+new Date(ov.at).toLocaleDateString('ms-MY'):'';
   showModal('stu-detail-modal');
+}
+function saveTPOverride(){
+  const stuId=document.getElementById('sd-current-stu-id').value;
+  if(!stuId||!DB.users[stuId])return;
+  const r=document.getElementById('sd-tp-r-override').value;
+  const l=document.getElementById('sd-tp-l-override').value;
+  const sp=document.getElementById('sd-tp-s-override').value;
+  const note=document.getElementById('sd-tp-note').value.trim();
+  const ov={note,by:CU?.name||'Teacher',at:Date.now()};
+  if(r)ov.reading=parseInt(r);
+  if(l)ov.listening=parseInt(l);
+  if(sp)ov.speaking=parseInt(sp);
+  DB.users[stuId].progress.tpOverride=ov;
+  dbSave();
+  showToast('✅ TP override saved!');
+  document.getElementById('sd-override-note').textContent='Last set by '+(CU?.name||'Teacher')+' · '+new Date().toLocaleDateString('ms-MY');
 }
 function getInterventionPlan(tp,name){
   const plans={
