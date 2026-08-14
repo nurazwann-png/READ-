@@ -250,6 +250,7 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
 </div>
 
 <div id="sessions-panel" class="card hidden" style="width:100%;max-width:480px;padding:12px 14px"></div>
+<div id="assigned-panel" class="card hidden" style="width:100%;max-width:480px;padding:12px 14px;border-left:4px solid var(--sky)"></div>
 
 <div style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:8px">
   <button class="btn btn-sky" onclick="goTo('s-skills')">🎯 Start Learning</button>
@@ -552,6 +553,19 @@ body{background:linear-gradient(135deg,#E0F7FA,#FFF9F4);color:var(--text);min-he
 </div>
 </div>
 
+<!-- ===== ASSIGN ACTIVITY MODAL ===== -->
+<div class="modal-overlay" id="assign-modal">
+<div class="modal-box" style="display:flex;flex-direction:column;gap:10px;max-height:85vh;overflow-y:auto">
+  <div style="font-weight:900;font-size:16px">📋 Assign Activity</div>
+  <div style="font-size:12px;color:var(--text2)" id="assign-stu-name"></div>
+  <input type="hidden" id="assign-stu-id">
+  <div style="display:flex;flex-direction:column;gap:6px" id="assign-activity-list"></div>
+  <button class="btn btn-ghost" onclick="closeModal('assign-modal')">Cancel</button>
+</div>
+</div>
+
+<!-- ===== ASSIGNED PANEL (student home) ===== -->
+
 <!-- ===== FOOTER ===== -->
 <footer id="app-footer">
   <div style="font-weight:800">📖 READ+</div>
@@ -841,6 +855,19 @@ function renderHome(){
     document.getElementById('continue-desc').textContent=(p.storyTitle||cStory.title)+' · '+(cStory.moments[Math.min(p.momentIdx||0,cStory.moments.length-1)]?.title||'');
   } else document.getElementById('continue-card').classList.add('hidden');
   renderSessions();
+  renderAssigned();
+}
+function renderAssigned(){
+  if(!CU)return;
+  const assigned=(CU.progress.assigned||[]).filter(a=>!(CU.progress.sessions||[]).some(s=>s.id===a.id&&s.completed));
+  const panel=document.getElementById('assigned-panel');
+  if(!assigned.length){panel.classList.add('hidden');return;}
+  panel.classList.remove('hidden');
+  panel.innerHTML='<div style="font-weight:800;font-size:13px;margin-bottom:8px">📋 Assigned by Teacher</div>'+
+    assigned.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${a.label}</span>
+      <button class="btn btn-sky btn-sm" onclick="const fn=getActivityLauncher('${a.id}');if(fn)fn()">▶ Do It!</button>
+    </div>`).join('');
 }
 function renderSkillBadges(){
   if(!CU)return;
@@ -2449,13 +2476,52 @@ function renderCvStudents(){
     const p=s.progress,yr=s.year||3;
     const tpR=calcReadingTP(p,yr)||1;
     const urgent=tpR<=2&&(p.helpCount||0)>6;
-    return`<div class="stu-row" onclick="showStuDetail('${s.id}')">
-      <div style="font-size:24px">${avE(s.avatar)}</div>
-      <div style="flex:1"><div style="font-weight:700;font-size:13px">${s.name} ${urgent?'⚠️':''}</div>
+    return`<div class="stu-row" style="cursor:default">
+      <div style="font-size:24px" onclick="showStuDetail('${s.id}')">${avE(s.avatar)}</div>
+      <div style="flex:1" onclick="showStuDetail('${s.id}')"><div style="font-weight:700;font-size:13px">${s.name} ${urgent?'⚠️':''}</div>
       <div style="margin-top:2px">${tpBadgeHTML(tpR)}</div></div>
-      <div style="font-weight:800;color:#f59e0b;font-size:12px">⭐${p.stars||0}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="font-weight:800;color:#f59e0b;font-size:12px">⭐${p.stars||0}</div>
+        <button class="btn btn-sky btn-sm" style="padding:5px 10px;font-size:11px" onclick="openAssignModal('${s.id}','${s.name.replace(/'/g,'&apos;')}')">📋 Assign</button>
+      </div>
     </div>`;}).join('')||'<div style="color:var(--text2);font-size:13px;padding:12px">No students yet.</div>';
 }
+// ===== ASSIGN ACTIVITY =====
+const ASSIGNABLE_ACTIVITIES=[
+  {id:'wordFlash',label:'Word Flash 🔤'},
+  {id:'readPhonics',label:'Phonics Blending 🔡'},
+  {id:'missingWord',label:'Missing Word 📝'},
+  {id:'readAndFind',label:'Read & Find 🔍'},
+  {id:'storyMap',label:'Story Map 🗺️'},
+  {id:'readAloud',label:'Read Aloud 🎤'},
+  {id:'listenPoint',label:'Listen & Point 👆'},
+  {id:'listenPredict',label:'Predict! 🔮'},
+  {id:'listenFollow',label:'Follow Me 📋'},
+  {id:'listenKeywords',label:'Key Words 📝'},
+  {id:'speakAlphabet',label:'Alphabet Chant 🔤'},
+  {id:'speakRetell',label:'Story Retell 🎭'},
+  {id:'speakTeach',label:'Teach a Friend 💡'},
+];
+function openAssignModal(stuId,stuName){
+  document.getElementById('assign-stu-id').value=stuId;
+  document.getElementById('assign-stu-name').textContent='Assigning to: '+stuName;
+  const already=(DB.users[stuId]?.progress?.assigned||[]).map(a=>a.id);
+  document.getElementById('assign-activity-list').innerHTML=ASSIGNABLE_ACTIVITIES.map(a=>`
+    <button class="btn" style="background:${already.includes(a.id)?'var(--forest)':'var(--surface2)'};color:${already.includes(a.id)?'#fff':'var(--text)'};border:1.5px solid var(--border);justify-content:flex-start;padding:10px 14px;font-size:13px" onclick="assignActivity('${a.id}','${a.label}')">
+      ${already.includes(a.id)?'✅ ':''} ${a.label}
+    </button>`).join('');
+  showModal('assign-modal');
+}
+function assignActivity(id,label){
+  const stuId=document.getElementById('assign-stu-id').value;
+  if(!stuId||!DB.users[stuId])return;
+  if(!DB.users[stuId].progress.assigned)DB.users[stuId].progress.assigned=[];
+  const existing=DB.users[stuId].progress.assigned.find(a=>a.id===id);
+  if(existing){showToast('Already assigned!');return;}
+  DB.users[stuId].progress.assigned.push({id,label,assignedAt:Date.now()});
+  dbSave();closeModal('assign-modal');showToast('✅ Activity assigned to student!');
+}
+
 function showStuDetail(stuId){
   const s=DB.users[stuId],p=s.progress,yr=s.year||3;
   const tpR=calcReadingTP(p,yr),tpL=calcListeningTP(p,yr),tpS=calcSpeakingTP(p,yr);
